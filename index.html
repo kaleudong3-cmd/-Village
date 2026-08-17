@@ -294,8 +294,6 @@
   .poi-btn.icon-sm svg.bldg{ width:clamp(13px, 4.5vw, 30px); height:clamp(13px, 4.5vw, 30px); }
   .poi-btn.icon-lg svg.bldg{ width:clamp(20px, 7.1vw, 48px); height:clamp(20px, 7.1vw, 48px); }
   .poi-btn.active svg.bldg{ filter:brightness(1.15) drop-shadow(2px 2px 0 rgba(36,22,9,0.6)); }
-  .poi-btn .tag{ font-size:clamp(5.5px, 1.9vw, 8px); padding:2px 4px; white-space:nowrap; background:rgba(43,27,18,0.75); color:var(--parchment); }
-  .poi-btn.active .tag{ background:var(--ember); color:var(--ink); }
 
   /* Easter egg: coin pop from the fountain */
   .coin-pop{
@@ -1329,12 +1327,9 @@
     POIS.forEach(function(poi){
       var isActive = poi.id === activePoiId;
       var sizeClass = poi.size === "lg" ? "icon-lg" : (poi.size === "sm" ? "icon-sm" : "");
-      var hideTag = poi.type === "cottage" || poi.type === "witch_hut" || poi.type.indexOf("market_") === 0;
-      var tagHtml = hideTag ? "" : '<span class="tag font-display">'+poi.kind+'</span>';
       html += '<button type="button" class="poi-btn '+sizeClass+(isActive ? " active" : "")+'" data-poi="'+poi.id+'" ' +
         'style="top:'+poi.top+';left:'+poi.left+'" aria-pressed="'+isActive+'" aria-label="'+poi.name+', '+poi.kind+'">' +
         '<span class="bldg-wrap">'+buildingSvg(poi.type)+'</span>' +
-        tagHtml +
       '</button>';
     });
     html += '</div>' +
