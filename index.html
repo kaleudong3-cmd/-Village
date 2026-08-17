@@ -1,0 +1,1508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Einherjar Village — Noticeboard</title>
+<meta name="description" content="The Einherjar Village noticeboard: local announcements, a coin-changer's calculator, and a map of the village." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bark:#3B2A1E; --bark-light:#5C4230; --bark-dark:#241609;
+    --plank:#7A5738; --plank-light:#8E6A45; --plank-dark:#5E4128;
+    --parchment:#EFE1BB; --parchment-dark:#DCC896; --parchment-shadow:#C7AE7C;
+    --moss:#4C6B3F; --moss-light:#6C8C56; --moss-dark:#33472A;
+    --ember:#DE9138; --ember-light:#F2B15C; --ember-dark:#A9601E;
+    --ink:#2B1B12;
+  }
+
+  *{ box-sizing:border-box; image-rendering:pixelated; image-rendering:-moz-crisp-edges; image-rendering:crisp-edges; }
+  html,body{ height:100%; margin:0; }
+  body{
+    background:var(--bark-dark);
+    font-family:'VT323', monospace;
+    color:var(--ink);
+    -webkit-font-smoothing:none;
+  }
+  .font-display{ font-family:'Press Start 2P', monospace; }
+
+  a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible{
+    outline:3px solid var(--ember-light);
+    outline-offset:3px;
+  }
+
+  /* ---------- Pixel-stepped corners ---------- */
+  .pixel-corners{
+    clip-path: polygon(
+      0px 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0px,
+      calc(100% - 8px) 0px, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px,
+      100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%,
+      8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0px calc(100% - 8px)
+    );
+  }
+  .pixel-corners-sm{
+    clip-path: polygon(
+      0px 4px, 2px 4px, 2px 2px, 4px 2px, 4px 0px,
+      calc(100% - 4px) 0px, calc(100% - 4px) 2px, calc(100% - 2px) 2px, calc(100% - 2px) 4px, 100% 4px,
+      100% calc(100% - 4px), calc(100% - 2px) calc(100% - 4px), calc(100% - 2px) calc(100% - 2px), calc(100% - 4px) calc(100% - 2px), calc(100% - 4px) 100%,
+      4px 100%, 4px calc(100% - 2px), 2px calc(100% - 2px), 2px calc(100% - 4px), 0px calc(100% - 4px)
+    );
+  }
+
+  .shadow-pixel{ box-shadow:4px 4px 0 0 rgba(36,22,9,0.55); }
+  .shadow-pixel-sm{ box-shadow:2px 2px 0 0 rgba(36,22,9,0.55); }
+  .shadow-pixel-inset{ box-shadow:inset 0 0 0 4px rgba(36,22,9,0.35); }
+
+  /* ---------- Textures ---------- */
+  .bg-wood-planks{
+    background-color:var(--plank);
+    background-image:
+      repeating-linear-gradient(180deg, rgba(0,0,0,0.12) 0px, rgba(0,0,0,0.12) 3px, transparent 3px, transparent 64px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0px, transparent 2px, transparent 90px, rgba(0,0,0,0.08) 92px);
+  }
+  .bg-bark-frame{
+    background-color:var(--bark);
+    background-image: repeating-linear-gradient(45deg, rgba(0,0,0,0.18) 0px, rgba(0,0,0,0.18) 2px, transparent 2px, transparent 10px);
+  }
+  .bg-parchment-paper{
+    background-color:var(--parchment);
+    background-image:
+      radial-gradient(rgba(199,174,124,0.5) 1px, transparent 1px),
+      radial-gradient(rgba(199,174,124,0.35) 1px, transparent 1px);
+    background-size:6px 6px, 9px 9px;
+    background-position:0 0, 3px 4px;
+  }
+  .bg-grass-tiles{
+    background-color:var(--moss);
+    background-image: repeating-conic-gradient(rgba(0,0,0,0.06) 0% 25%, transparent 0% 50%);
+    background-size:16px 16px;
+  }
+
+  .pixel-scroll::-webkit-scrollbar{ width:10px; }
+  .pixel-scroll::-webkit-scrollbar-track{ background:var(--parchment-dark); }
+  .pixel-scroll::-webkit-scrollbar-thumb{ background:var(--ember-dark); border:2px solid var(--plank-dark); }
+
+  @keyframes flicker{
+    0%,100%{ opacity:1; } 48%{ opacity:0.82; } 50%{ opacity:0.6; } 52%{ opacity:0.9; } 76%{ opacity:0.75; }
+  }
+  @keyframes sway{ 0%,100%{ transform:rotate(-1.2deg); } 50%{ transform:rotate(1.2deg); } }
+  .animate-flicker{ animation:flicker 2.6s infinite ease-in-out; }
+  .animate-sway{ animation:sway 4.5s infinite ease-in-out; transform-origin:top center; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important; }
+  }
+
+  /* ---------- Layout ---------- */
+  main{
+    min-height:100vh;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:40px 12px;
+    position:relative;
+  }
+  main::before{
+    content:""; position:fixed; inset:0; pointer-events:none;
+    background:radial-gradient(circle at center, rgba(242,177,92,0.10), transparent 60%);
+  }
+
+  .board-wrap{ position:relative; width:100%; max-width:768px; }
+
+  .chain{ position:absolute; top:-36px; width:4px; height:36px; background:var(--bark-dark); display:none; }
+  .chain.left{ left:40px; } .chain.right{ right:40px; }
+
+  .plaque-row{ display:flex; justify-content:center; margin-bottom:12px; }
+  .plaque{ padding:8px 16px; background:var(--bark); }
+  .plaque p{ margin:0; font-size:10px; letter-spacing:0.15em; color:var(--parchment); line-height:1; }
+
+  .frame-row{ display:flex; align-items:stretch; gap:8px; }
+
+  .nav-btn{
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; width:40px;
+    background:var(--plank); color:var(--parchment);
+    border:none; cursor:pointer;
+    transition:background 0.15s, transform 0.1s, box-shadow 0.1s;
+  }
+  .nav-btn:hover{ background:var(--ember); }
+  .nav-btn:active{ transform:translateY(2px); box-shadow:none; }
+  .nav-btn svg{ width:24px; height:24px; }
+
+  .frame{
+    background:var(--bark);
+    position:relative; flex:1; padding:8px;
+  }
+  .frame-bolt{ position:absolute; width:8px; height:8px; background:rgba(43,27,18,0.7); }
+  .frame-bolt.tl{ top:4px; left:4px; } .frame-bolt.tr{ top:4px; right:4px; }
+  .frame-bolt.bl{ bottom:4px; left:4px; } .frame-bolt.br{ bottom:4px; right:4px; }
+
+  .plank-inner{ padding:8px; }
+  .parchment-area{ min-height:420px; max-height:70vh; overflow-y:auto; padding:12px; }
+
+  .lantern-deco{ position:absolute; top:-12px; right:12px; display:none; }
+  .lantern-deco svg{ width:24px; height:24px; }
+
+  .dots-row{ margin-top:16px; display:flex; flex-direction:column; align-items:center; gap:8px; }
+  .dots-row .label{ font-size:9px; color:rgba(239,225,187,0.9); }
+  .dots{ display:flex; align-items:center; gap:8px; }
+  .dot{ width:10px; height:10px; border:2px solid var(--bark-dark); background:var(--parchment-dark); cursor:pointer; padding:0; }
+  .dot.active{ background:var(--ember); }
+
+  .hint{ margin-top:24px; max-width:420px; text-align:center; font-size:16px; color:rgba(239,225,187,0.6); }
+
+  h2.slide-title{ font-size:14px; margin:0 0 16px; color:var(--ink); }
+  h3.card-title{ font-size:11px; margin:0 0 8px; color:var(--ink); }
+
+  /* ---------- Slide: Noticeboard ---------- */
+  .notice-grid{ display:grid; grid-template-columns:1fr; gap:20px; }
+  @media(min-width:640px){ .notice-grid{ grid-template-columns:1fr 1fr; } }
+  .notice{
+    position:relative; padding:12px; border:2px solid;
+    transition:transform 0.15s;
+    cursor:pointer;
+  }
+  .notice:hover{ transform:rotate(0deg) !important; }
+  .notice .pin{ position:absolute; top:-8px; left:50%; transform:translateX(-50%); width:16px; height:16px; }
+  .notice p.body{ font-size:19px; line-height:1.25; margin:0 0 8px; }
+  .notice p.signed{ font-size:17px; margin:0; }
+
+  /* Paper style variants for the different "types" of flyers */
+  .notice.paper-parchment{ background:var(--parchment); border-color:var(--parchment-shadow); }
+  .notice.paper-parchment .card-title{ color:var(--ink); }
+  .notice.paper-parchment p.body{ color:rgba(43,27,18,0.9); }
+  .notice.paper-parchment p.signed{ color:rgba(43,27,18,0.6); }
+
+  .notice.paper-scrap{ background:#D8C9A8; border-color:#9C8358; }
+  .notice.paper-scrap .card-title{ color:#3A2C16; }
+  .notice.paper-scrap p.body{ color:#4A3B22; }
+  .notice.paper-scrap p.signed{ color:rgba(74,59,34,0.65); }
+
+  .notice.paper-poster{ background:#E8D9B0; border:2px dashed #A9601E; }
+  .notice.paper-poster .card-title{ color:#A9231C; }
+  .notice.paper-poster p.body{ color:#5E3B14; }
+  .notice.paper-poster p.signed{ color:rgba(94,59,20,0.65); }
+
+  .notice.paper-slate{ background:#2E3A34; border-color:#1A211D; }
+  .notice.paper-slate .card-title{ color:#EFE1BB; }
+  .notice.paper-slate p.body{ color:#D7E4DC; }
+  .notice.paper-slate p.signed{ color:rgba(215,228,220,0.6); }
+
+  .ai-loading{ text-align:center; }
+
+  /* ---------- Slide: Currency ---------- */
+  .currency-intro{ font-size:19px; color:rgba(43,27,18,0.7); margin:0 0 20px; }
+  .currency-grid{ display:grid; grid-template-columns:1fr; gap:16px; }
+  @media(min-width:640px){ .currency-grid{ grid-template-columns:repeat(3,1fr); } }
+  .currency-card{ background:var(--parchment); border:2px solid var(--parchment-shadow); padding:12px; }
+  .currency-card .label-row{ display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .currency-card .label-row span{ font-size:10px; }
+  .currency-card svg{ width:24px; height:24px; }
+  .currency-card input{
+    width:100%; font-family:'VT323', monospace; font-size:24px;
+    background:var(--parchment-paper, var(--parchment)); background-color:var(--parchment);
+    border:2px solid var(--bark-dark); padding:4px 8px; color:var(--ink); outline:none;
+  }
+  .currency-card input:focus-visible{ border-color:var(--ember); }
+  .currency-card .hint{ margin:4px 0 0; text-align:left; font-size:16px; color:rgba(43,27,18,0.6); max-width:none; }
+  .purse-total{ margin-top:20px; background:rgba(76,107,63,0.2); border:2px solid var(--moss); padding:12px; }
+  .purse-total p{ margin:0; font-size:19px; color:var(--moss-dark); }
+  .purse-total p.krw-total{ margin-top:6px; color:var(--ember-dark); }
+
+  /* ---------- Slide: Map ---------- */
+  .map-box{
+    position:relative; width:100%; aspect-ratio:10/9; overflow:hidden;
+    background-color:var(--moss); border:2px solid var(--moss-dark);
+  }
+
+  /* Crossroads running through the village quarter */
+  .crossroad{ position:absolute; background:rgba(142,106,69,0.75); }
+  .crossroad.v{ left:46%; top:20%; height:60%; width:8%; }
+  .crossroad.h{ left:20%; top:46%; height:8%; width:60%; }
+
+  /* Central plaza ring, cobbled, with the fountain at its heart */
+  .plaza-ring{
+    position:absolute; left:36%; top:36%; width:28%; height:28%;
+    background-color:#B9AE94;
+    background-image: radial-gradient(rgba(122,87,56,0.4) 1px, transparent 1px);
+    background-size:5px 5px;
+    border:2px solid var(--plank-dark);
+  }
+
+  /* Outer terrain: forest rings the village on every side, with farmland,
+     an orchard, and the lake tucked into the corners beyond the treeline. */
+  .zone{ position:absolute; }
+  .zone.forest{ background:var(--moss-dark); opacity:0.55; }
+  .zone.farm{
+    background-color:#8E6A45;
+    background-image: repeating-linear-gradient(0deg, rgba(43,27,18,0.25) 0px, rgba(43,27,18,0.25) 3px, transparent 3px, transparent 10px);
+  }
+  .zone.orchard{
+    background-color:#6C8C56;
+    background-image: repeating-radial-gradient(circle, rgba(43,27,18,0.18) 0px, rgba(43,27,18,0.18) 2px, transparent 2px, transparent 12px);
+  }
+  .zone.lake{ background:#4F6A82; }
+  .zone.lake::after{
+    content:""; position:absolute; inset:0;
+    background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.12) 0px, rgba(255,255,255,0.12) 3px, transparent 3px, transparent 16px);
+  }
+
+  .decor{ position:absolute; transform:translate(-50%,-50%); pointer-events:none; }
+  .decor svg{ display:block; filter:drop-shadow(1px 1px 0 rgba(36,22,9,0.4)); }
+  .decor.tree svg{ width:20px; height:26px; }
+  .decor.flower svg{ width:11px; height:13px; }
+  @media(min-width:640px){
+    .decor.tree svg{ width:26px; height:32px; }
+    .decor.flower svg{ width:14px; height:16px; }
+  }
+
+  .poi-btn{
+    position:absolute; transform:translate(-50%,-50%);
+    display:flex; flex-direction:column; align-items:center; gap:4px;
+    background:none; border:none; cursor:pointer; padding:0; z-index:2;
+  }
+  .poi-btn .bldg-wrap{ padding:4px; transition:transform 0.15s; }
+  .poi-btn:hover .bldg-wrap, .poi-btn.active .bldg-wrap{ transform:translateY(-4px); }
+  .poi-btn svg.bldg{ width:30px; height:30px; filter:drop-shadow(2px 2px 0 rgba(36,22,9,0.6)); display:block; }
+  .poi-btn.icon-sm svg.bldg{ width:24px; height:24px; }
+  .poi-btn.icon-lg svg.bldg{ width:38px; height:38px; }
+  @media(min-width:640px){
+    .poi-btn svg.bldg{ width:38px; height:38px; }
+    .poi-btn.icon-sm svg.bldg{ width:30px; height:30px; }
+    .poi-btn.icon-lg svg.bldg{ width:48px; height:48px; }
+  }
+  .poi-btn.active svg.bldg{ filter:brightness(1.15) drop-shadow(2px 2px 0 rgba(36,22,9,0.6)); }
+  .poi-btn .tag{ font-size:7px; padding:2px 4px; white-space:nowrap; background:rgba(43,27,18,0.75); color:var(--parchment); }
+  .poi-btn.active .tag{ background:var(--ember); color:var(--ink); }
+  @media(min-width:640px){ .poi-btn .tag{ font-size:8px; } }
+  .poi-detail{ margin-top:16px; background:var(--parchment); border:2px solid var(--parchment-shadow); padding:12px; }
+  .poi-detail p{ font-size:19px; color:rgba(43,27,18,0.8); margin:4px 0 0; }
+
+  /* ---------- Slide: Dice ---------- */
+  .dice-intro{ font-size:19px; color:rgba(43,27,18,0.7); margin:0 0 20px; }
+  .dice-stage{ display:flex; flex-direction:column; align-items:center; gap:16px; margin-bottom:24px; }
+  .die-face{
+    width:96px; height:96px; display:flex; align-items:center; justify-content:center;
+    background:var(--parchment); border:3px solid var(--bark-dark);
+    box-shadow:5px 5px 0 0 rgba(36,22,9,0.55);
+    transition:background 0.15s, border-color 0.15s;
+  }
+  .die-face .num{ font-family:'Press Start 2P', monospace; font-size:30px; color:var(--ink); }
+  .die-face.rolling{ animation:diceShake 0.08s infinite; }
+  @keyframes diceShake{ 0%{ transform:rotate(-3deg); } 50%{ transform:rotate(3deg); } 100%{ transform:rotate(-3deg); } }
+  .die-face.tier-crit-success{ background:var(--ember-light); border-color:var(--ember-dark); }
+  .die-face.tier-success{ background:#CFE0B8; border-color:var(--moss-dark); }
+  .die-face.tier-normal{ background:var(--parchment-dark); border-color:var(--parchment-shadow); }
+  .die-face.tier-failure{ background:#DDBFA0; border-color:#A9601E; }
+  .die-face.tier-crit-failure{ background:#D79A93; border-color:#7A1F1F; }
+  .roll-btn{
+    font-family:'Press Start 2P', monospace; font-size:11px; cursor:pointer;
+    padding:12px 22px; background:var(--ember); color:var(--ink);
+    border:2px solid var(--bark-dark); box-shadow:3px 3px 0 0 rgba(36,22,9,0.55);
+    transition:transform 0.1s, box-shadow 0.1s;
+  }
+  .roll-btn:hover{ background:var(--ember-light); }
+  .roll-btn:active{ transform:translate(3px,3px); box-shadow:none; }
+  .roll-result{ min-height:26px; text-align:center; }
+  .roll-result p{ margin:0; font-size:19px; color:rgba(43,27,18,0.85); }
+  .roll-result .tier-name{ font-family:'Press Start 2P', monospace; font-size:11px; }
+  .tier-legend{ display:grid; grid-template-columns:1fr; gap:10px; }
+  @media(min-width:640px){ .tier-legend{ grid-template-columns:1fr 1fr; } }
+  .tier-card{
+    background:var(--parchment); border:2px solid var(--parchment-shadow); padding:10px 12px;
+    display:flex; align-items:flex-start; gap:10px; transition:border-color 0.2s, transform 0.2s;
+  }
+  .tier-card .chip{
+    flex-shrink:0; width:14px; height:14px; margin-top:2px; border:2px solid var(--bark-dark);
+  }
+  .tier-card .chip.tier-crit-success{ background:var(--ember); }
+  .tier-card .chip.tier-success{ background:var(--moss-light); }
+  .tier-card .chip.tier-normal{ background:var(--parchment-shadow); }
+  .tier-card .chip.tier-failure{ background:#A9601E; }
+  .tier-card .chip.tier-crit-failure{ background:#7A1F1F; }
+  .tier-card h4{ margin:0 0 2px; font-size:11px; font-family:'Press Start 2P', monospace; color:var(--ink); }
+  .tier-card .range{ font-size:15px; color:rgba(43,27,18,0.55); margin:0 0 4px; }
+  .tier-card p.desc{ margin:0; font-size:17px; line-height:1.3; color:rgba(43,27,18,0.85); }
+  .tier-card.highlight{ border-color:var(--ember-dark); transform:translateY(-2px); box-shadow:3px 3px 0 0 rgba(36,22,9,0.35); }
+
+  @media(min-width:640px){
+    .chain{ display:block; }
+    .lantern-deco{ display:block; }
+    .nav-btn{ width:56px; }
+    .nav-btn svg{ width:32px; height:32px; }
+    .frame-row{ gap:16px; }
+    .parchment-area{ padding:24px; min-height:460px; }
+    .plaque p{ font-size:12px; }
+    h2.slide-title{ font-size:16px; }
+    .dots-row .label{ font-size:10px; }
+  }
+
+  /* ---------- Mobile fine-tuning ---------- */
+  @media(max-width:479px){
+    main{ padding:24px 8px; }
+    .plaque{ padding:6px 10px; }
+    .plaque p{ font-size:8px; }
+    .nav-btn{ width:36px; }
+    .nav-btn svg{ width:20px; height:20px; }
+    .frame-row{ gap:6px; }
+    .plank-inner{ padding:6px; }
+    .parchment-area{ padding:10px; min-height:360px; max-height:65vh; }
+    h2.slide-title{ font-size:12px; margin-bottom:12px; }
+    h3.card-title{ font-size:10px; }
+    .notice p.body{ font-size:17px; }
+    .notice p.signed{ font-size:15px; }
+    .currency-card input{ font-size:20px; }
+    .die-face{ width:76px; height:76px; }
+    .die-face .num{ font-size:24px; }
+    .roll-btn{ font-size:10px; padding:10px 16px; }
+    .hint{ font-size:14px; margin-top:16px; }
+    .admin-toggle{ font-size:8px; padding:6px 8px; top:8px; right:8px; }
+    .modal-box{ width:92vw; padding:14px; }
+  }
+
+  /* ---------- Admin login / notice editing ---------- */
+  .admin-toggle{
+    position:fixed; top:16px; right:16px; z-index:50;
+    font-family:'Press Start 2P', monospace; font-size:9px; cursor:pointer;
+    padding:8px 12px; background:var(--bark); color:var(--parchment);
+    border:2px solid var(--bark-dark);
+  }
+  .admin-toggle:hover{ background:var(--ember); color:var(--ink); }
+  .admin-toggle.is-admin{ background:var(--moss); }
+
+  .admin-bar{ display:flex; justify-content:flex-end; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+  .admin-add-btn{
+    font-family:'Press Start 2P', monospace; font-size:9px; cursor:pointer;
+    padding:8px 12px; background:var(--ember); color:var(--ink);
+    border:2px solid var(--bark-dark); box-shadow:2px 2px 0 0 rgba(36,22,9,0.5);
+  }
+  .admin-add-btn:hover{ background:var(--ember-light); }
+
+  .notice-actions{ display:flex; gap:6px; margin-top:8px; }
+  .notice-actions button{
+    font-family:'VT323', monospace; font-size:15px; cursor:pointer;
+    padding:4px 10px; background:var(--parchment-dark); color:var(--ink);
+    border:2px solid var(--bark-dark);
+  }
+  .notice-actions button:hover{ background:var(--ember-light); }
+  .notice-actions button.danger:hover{ background:#D79A93; }
+
+  .modal-overlay{
+    position:fixed; inset:0; z-index:100;
+    background:rgba(36,22,9,0.6);
+    display:flex; align-items:center; justify-content:center;
+    padding:16px;
+  }
+  .modal-overlay[hidden]{ display:none; }
+  .modal-box{
+    width:100%; max-width:420px; padding:18px;
+    max-height:88vh; overflow-y:auto;
+  }
+  .modal-box label{
+    display:block; font-size:15px; color:rgba(43,27,18,0.75);
+    margin:10px 0 4px;
+  }
+  .modal-box input[type="text"],
+  .modal-box input[type="password"],
+  .modal-box textarea{
+    width:100%; font-family:'VT323', monospace; font-size:16px;
+    background:var(--parchment); border:2px solid var(--bark-dark);
+    padding:8px; color:var(--ink); outline:none;
+  }
+  .modal-box input:focus-visible, .modal-box textarea:focus-visible{ border-color:var(--ember); }
+  .modal-box textarea{ min-height:100px; resize:vertical; }
+  .modal-actions{ display:flex; gap:8px; margin-top:16px; }
+  .modal-actions button{
+    font-family:'Press Start 2P', monospace; font-size:10px; cursor:pointer;
+    padding:10px 14px; border:2px solid var(--bark-dark);
+    box-shadow:2px 2px 0 0 rgba(36,22,9,0.5);
+  }
+  .modal-actions .primary{ background:var(--ember); color:var(--ink); }
+  .modal-actions .primary:hover{ background:var(--ember-light); }
+  .modal-actions .secondary{ background:var(--parchment-dark); color:var(--ink); }
+  .modal-actions .secondary:hover{ background:var(--parchment-shadow); }
+  .modal-actions .danger-btn{ background:#B9453D; color:var(--parchment); }
+  .modal-actions .danger-btn:hover{ background:#D06158; }
+  .modal-error{ font-size:15px; color:#7A1F1F; margin:8px 0 0; }
+  .modal-error[hidden]{ display:none; }
+
+  /* ---------- Notice view (enlarge) modal ---------- */
+  .view-modal-box{
+    position:relative; width:100%; max-width:560px; padding:28px 24px 24px;
+    max-height:88vh; overflow-y:auto; border:2px solid; cursor:default;
+  }
+  .view-modal-box .pin{ width:22px; height:22px; top:-11px; }
+  .view-modal-box h3.card-title{ font-size:16px; margin:8px 0 16px; }
+  .view-modal-box p.body{ font-size:24px; line-height:1.35; margin:0 0 14px; }
+  .view-modal-box p.signed{ font-size:19px; margin:0; }
+  .view-modal-close{
+    position:absolute; top:6px; right:6px;
+    font-family:'Press Start 2P', monospace; font-size:10px; line-height:1; cursor:pointer;
+    padding:6px 9px; background:var(--parchment-dark); color:var(--ink);
+    border:2px solid var(--bark-dark); box-shadow:2px 2px 0 0 rgba(36,22,9,0.5);
+  }
+  .view-modal-close:hover{ background:var(--ember-light); }
+  @media(max-width:520px){
+    .view-modal-box p.body{ font-size:20px; }
+  }
+</style>
+</head>
+<body>
+
+<button type="button" id="adminToggleBtn" class="admin-toggle pixel-corners-sm shadow-pixel-sm font-display">관리자</button>
+
+<main>
+  <div class="board-wrap">
+    <div class="chain left"></div>
+    <div class="chain right"></div>
+
+    <div class="plaque-row">
+      <div class="plaque pixel-corners-sm shadow-pixel-sm"><p class="font-display">EINHERJAR VILLAGE</p></div>
+    </div>
+
+    <div class="frame-row">
+      <button class="nav-btn pixel-corners-sm shadow-pixel-sm" id="prevBtn" aria-label="Previous board" type="button">
+        <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M20 4h-4v4h-4v4h-4v4h4v4h4v4h4v-4h-4v-4h4v-4h-4V8h4V4z" fill="currentColor"/></svg>
+      </button>
+
+      <div class="frame pixel-corners shadow-pixel bg-bark-frame">
+        <span class="frame-bolt tl"></span><span class="frame-bolt tr"></span>
+        <span class="frame-bolt bl"></span><span class="frame-bolt br"></span>
+
+        <div class="plank-inner pixel-corners-sm shadow-pixel-inset bg-wood-planks">
+          <div class="parchment-area pixel-corners-sm pixel-scroll bg-parchment-paper" id="slideHost">
+            <!-- slide content injected here -->
+          </div>
+        </div>
+
+        <div class="lantern-deco">
+          <svg viewBox="0 0 16 20" aria-hidden="true">
+            <rect x="7" y="0" width="2" height="2" fill="#5E4128"/>
+            <rect x="4" y="2" width="8" height="2" fill="#3B2A1E"/>
+            <rect x="5" y="4" width="6" height="10" fill="#241609"/>
+            <rect x="6" y="5" width="4" height="8" fill="#F2B15C" class="animate-flicker"/>
+            <rect x="4" y="14" width="8" height="2" fill="#3B2A1E"/>
+            <rect x="6" y="16" width="4" height="2" fill="#5E4128"/>
+          </svg>
+        </div>
+      </div>
+
+      <button class="nav-btn pixel-corners-sm shadow-pixel-sm" id="nextBtn" aria-label="Next board" type="button">
+        <svg viewBox="0 0 28 28" aria-hidden="true"><path d="M12 4h4v4h4v4h4v4h-4v4h-4v4h-4v-4h4v-4h-4v-4h4V8h-4V4z" fill="currentColor"/></svg>
+      </button>
+    </div>
+
+    <div class="dots-row">
+      <p class="font-display label" id="slideLabel"></p>
+      <div class="dots" id="dots"></div>
+    </div>
+  </div>
+
+  <p class="hint">Use the arrows, the dots, or your left / right keys to browse the board.</p>
+</main>
+
+<div class="modal-overlay" id="loginModal" hidden>
+  <div class="modal-box pixel-corners shadow-pixel bg-parchment-paper">
+    <h3 class="card-title font-display">관리자 로그인</h3>
+    <label for="adminEmailInput">이메일</label>
+    <input type="text" id="adminEmailInput" autocomplete="off" />
+    <label for="adminPassInput">비밀번호</label>
+    <input type="password" id="adminPassInput" autocomplete="off" />
+    <p class="modal-error" id="loginError" hidden>이메일 또는 비밀번호가 올바르지 않습니다.</p>
+    <div class="modal-actions">
+      <button type="button" class="primary" id="loginSubmitBtn">로그인</button>
+      <button type="button" class="secondary" id="loginCancelBtn">취소</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="noticeModal" hidden>
+  <div class="modal-box pixel-corners shadow-pixel bg-parchment-paper">
+    <h3 class="card-title font-display" id="noticeModalTitle">공지 추가</h3>
+    <label for="noticeTitleInput">제목</label>
+    <input type="text" id="noticeTitleInput" />
+    <label for="noticeSignedInput">게시자 이름</label>
+    <input type="text" id="noticeSignedInput" />
+    <label for="noticeBodyInput">공지 내용</label>
+    <textarea id="noticeBodyInput"></textarea>
+    <p class="modal-error" id="noticeError" hidden>제목, 게시자 이름, 공지 내용을 모두 입력해주세요.</p>
+    <div class="modal-actions">
+      <button type="button" class="primary" id="noticeSaveBtn">저장</button>
+      <button type="button" class="secondary" id="noticeCancelBtn">취소</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="deleteModal" hidden>
+  <div class="modal-box pixel-corners shadow-pixel bg-parchment-paper">
+    <h3 class="card-title font-display">공지 삭제</h3>
+    <p id="deleteMessage" style="font-size:17px; margin:8px 0 0;"></p>
+    <div class="modal-actions">
+      <button type="button" class="danger-btn" id="deleteConfirmBtn">삭제</button>
+      <button type="button" class="secondary" id="deleteCancelBtn">취소</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="viewModal" hidden>
+  <div class="view-modal-box pixel-corners shadow-pixel" id="viewModalBox">
+    <button type="button" class="view-modal-close" id="viewModalClose">닫기</button>
+    <div id="viewModalContent"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+(function(){
+  /* ---------------- Supabase ---------------- */
+  var SUPABASE_URL = "https://ziebbotacygrettyyodo.supabase.co";
+  var SUPABASE_ANON_KEY = "sb_publishable_sj1ORIg3WzYdOq_Ji__npw_IEyRM2Yo";
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  "use strict";
+
+  /* ---------------- Data ---------------- */
+  var DEFAULT_NOTICES = [
+    { title:"현상수배: 늪 트롤", tilt:-2, body:"물레방아 연못 너머에서 또 순무밭을 짓밟고 다니는 게 목격됐습니다. 쫓아내는 분께 금화 50냥을 드립니다 — 마을 경비대에서 영장을 받아가세요.", signed:"— 마을 경비대" },
+    { title:"수확제 안내", tilt:1, body:"이번 주 토요일 해질녘, 광장에서 열립니다. 나눠 먹을 음식 한 가지씩 가져와 주세요. 사과주는 방앗간에서, 음악은 바이올린 들고 나타나는 아무나 담당합니다.", signed:"— 방앗간 주인" },
+    { title:"방 세놓습니다", tilt:-1, body:"구두 수선공 가게 위 작은 방, 창문 하나, 빵집 쪽을 향해 있습니다 (축복이자 저주죠). 아침에만 미라를 찾아주세요.", signed:"— 미라" },
+    { title:"고양이를 잃어버렸어요", tilt:2, body:"기분이 내키면 '비스킷'이라고 부르면 대답해요. 주황색, 고집 세고, 마지막으로 옛 물레방아 근처에서 목격됐습니다. 보상은 대체로 감사 인사뿐입니다.", signed:"— 헨슬리 가족" }
+  ];
+
+  var NOTICES = [];
+  var noticesLoading = true;
+  var noticesError = false;
+
+  async function loadNotices(){
+    noticesLoading = true;
+    noticesError = false;
+    try{
+      var res = await sb.from("notices").select("*").order("created_at", { ascending:true });
+      if(res.error) throw res.error;
+      NOTICES = res.data || [];
+    }catch(e){
+      console.error("공지 불러오기 실패:", e);
+      NOTICES = DEFAULT_NOTICES.slice();
+      noticesError = true;
+    }
+    noticesLoading = false;
+    if(SLIDES[activeIndex].id === "notices") renderSlide(activeIndex, true);
+  }
+
+  function escapeHtml(str){
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  /* ---------------- Admin auth (Supabase) ---------------- */
+  var isAdmin = false;
+
+  var POIS = [
+    { id:"fountain", name:"Einherjar Square", type:"fountain", kind:"Fountain", size:"lg", top:"50%", left:"50%", blurb:"사거리가 만나는 곳입니다. 동전을 던지며 소원을 빌어보세요 — 분수는 대부분의 소원을 그대로 품고 있답니다." },
+    { id:"guild", name:"Adventurers' Guild", type:"guild", kind:"Guild Hall", size:"lg", top:"74%", left:"34%", blurb:"북쪽 벽에 매일 새로운 의뢰가 붙습니다. 길드장은 끝내지 못한 의뢰를 그리 달가워하지 않아요." },
+    { id:"inn", name:"The Drowsy Stag Inn", type:"inn", kind:"Inn", size:"md", top:"66%", left:"22%", blurb:"길드 바로 옆에 자리한 여관입니다. 여독을 푼 모험가들이 하룻밤 묵어가며 다음 의뢰를 준비하는 곳이에요." },
+    { id:"trading", name:"Ashworth Trading Co.", type:"trading", kind:"Trading Co.", size:"lg", top:"26%", left:"70%", blurb:"마을 반대편에서 상회 간판을 내걸고 있습니다 — 수입과 수출, 그리고 온갖 소문이 함께 오갑니다." },
+    { id:"entrance", name:"Village Gate", type:"entrance", kind:"Village Gate", size:"md", top:"80%", left:"74%", blurb:"농지 쪽에서 마을로 들어오는 어귀예요. 수레가 드나들기 좋도록 길이 넓게 다져져 있습니다." },
+    { id:"cottage_w", name:"Miller's Cottage", type:"cottage", kind:"Cottage", size:"sm", top:"40%", left:"22%", blurb:"굴뚝에서 늘 연기가 피어오릅니다. 방앗간 주인은 남다른 시간에 일어나 지내요." },
+    { id:"cottage_e", name:"Weaver's Cottage", type:"cottage", kind:"Cottage", size:"sm", top:"62%", left:"78%", blurb:"대부분의 아침이면 창턱에 염색한 양털이 널려 마르고 있습니다." },
+    { id:"cottage_nw", name:"Old Tomas' Cottage", type:"cottage", kind:"Cottage", size:"sm", top:"26%", left:"36%", blurb:"마을에서 가장 오래된 집이며, 토마스 영감은 그 사실을 늘 길게 늘어놓곤 하죠." },
+    { id:"cottage_se", name:"Widow Hale's Cottage", type:"cottage", kind:"Cottage", size:"sm", top:"74%", left:"64%", blurb:"문 앞에 약초가 매달려 말라가고 있습니다. 그녀는 땔감과 약을 맞바꾸곤 하죠." },
+    { id:"cottage_n", name:"Baker's Cottage", type:"cottage", kind:"Cottage", size:"sm", top:"40%", left:"32%", blurb:"새벽부터 화덕에 불을 지피는 냄새가 온 마을에 퍼집니다." },
+    { id:"cottage_s", name:"Cooper's Cottage", type:"cottage", kind:"Cottage", size:"sm", top:"78%", left:"44%", blurb:"마당 가득 나무통이 쌓여 있습니다. 농지에서 거둔 것을 담을 통이라나요." },
+    { id:"cottage_ne", name:"Herdsman's Cottage", type:"cottage", kind:"Cottage", size:"sm", top:"64%", left:"68%", blurb:"울타리 너머로 양 떼가 매매 울어대는 소리가 들려옵니다." },
+    { id:"cottage_nw2", name:"Herbalist's Cottage", type:"cottage", kind:"Cottage", size:"sm", top:"22%", left:"24%", blurb:"처마 밑에 말린 약초 다발이 매달려 있습니다. 약초상은 농부들이 가져오는 것과 무엇이든 바꿔줘요." },
+    { id:"cottage_w2", name:"Shepherd's Cottage", type:"cottage", kind:"Cottage", size:"sm", top:"32%", left:"22%", blurb:"문 옆에 지팡이가 기대어 있고, 다져진 길이 목초지 쪽으로 이어집니다." },
+    { id:"witch_hut_n", name:"The Crooked Hut", type:"witch_hut", kind:"Witch's Hut", size:"sm", top:"8%", left:"46%", blurb:"북쪽 숲 깊숙이 자리해 있고, 굴뚝에서는 이상한 초록빛 연기가 피어오릅니다. 마을 사람들은 문 앞에 제물을 두고 오래 머무르지 않아요." },
+    { id:"ruins_w", name:"Forgotten Ruins", type:"ruin", kind:"Ruins", size:"sm", top:"50%", left:"8%", blurb:"서쪽 숲에 무너진 돌기둥들이 이끼에 덮인 채 남아 있습니다. 누가, 언제 세운 건지는 아무도 모르지만 밤이면 희미한 빛이 새어 나온다는 소문이 있어요." },
+    { id:"witch_hut_s", name:"The Toadstool Cottage", type:"witch_hut", kind:"Witch's Hut", size:"sm", top:"92%", left:"46%", blurb:"해질녘이면 은은히 빛나는 버섯들이 둘러싸고 있습니다. 이곳에 누가 사는지 안다는 마을 사람은 아무도 없어요." },
+    { id:"market_general", name:"Old Anvil General Store", type:"market_general", kind:"General Store", size:"sm", top:"36%", left:"68%", blurb:"냄비부터 밧줄까지, 없는 게 없는 잡화점입니다. 주인장은 못 구하는 물건이 없다고 큰소리치곤 하죠." },
+    { id:"market_fruit", name:"Sunfield Fruit Stall", type:"market_fruit", kind:"Fruit Stall", size:"sm", top:"36%", left:"78%", blurb:"제철 과일이 상자마다 가득 쌓여 있습니다. 과수원에서 아침마다 갓 따온 것들이에요." },
+    { id:"market_fish", name:"Silverglass Fish Stall", type:"market_fish", kind:"Fish Stall", size:"sm", top:"56%", left:"68%", blurb:"이른 새벽 호수에서 건진 물고기들이 좌판 위에 반짝입니다. 해뜨기 전에 가야 좋은 놈을 고를 수 있어요." },
+    { id:"market_butcher", name:"Bramblefield Butcher", type:"market_butcher", kind:"Butcher", size:"sm", top:"56%", left:"78%", blurb:"농지 인근 목장에서 온 고기가 걸려 있습니다. 훈제육 냄새가 가게 앞까지 은은하게 풍겨요." },
+    { id:"forest", name:"Hollow Pine Forest", type:"forest", kind:"Forest", size:"md", top:"10%", left:"10%", blurb:"마을을 사방에서 둘러싼 숲입니다. 그늘이 울창하고 고요하며, 나무꾼들도 해가 진 뒤에는 들어가지 않아요." },
+    { id:"farm", name:"Bramblefield Farms", type:"farm", kind:"Farmland", size:"md", top:"90%", left:"90%", blurb:"마을 어귀 오른쪽 아래로 펼쳐진 밭입니다. 보리와 뿌리채소가 줄지어 자라고, 가을이면 수확 일손을 구하기 시작해요." },
+    { id:"orchard", name:"Sunfield Orchard", type:"orchard", kind:"Orchard", size:"md", top:"10%", left:"90%", blurb:"마을 오른쪽 위 모서리에 자리한 과수원입니다. 사과와 배가 익어가면 온 마을에 단내가 퍼져요." },
+    { id:"lake", name:"Silverglass Lake", type:"lake", kind:"Lake", size:"md", top:"90%", left:"10%", blurb:"숲을 지나야 닿는, 마을에서 가장 먼 호수입니다. 하늘을 비출 만큼 잔잔하고, 해뜨기 전 낚시가 가장 좋아요." }
+  ];
+
+  var ZONES = [
+    { cls:"forest", top:"0%", left:"0%", width:"100%", height:"20%" },
+    { cls:"forest", top:"80%", left:"0%", width:"100%", height:"20%" },
+    { cls:"forest", top:"20%", left:"0%", width:"20%", height:"60%" },
+    { cls:"forest", top:"20%", left:"80%", width:"20%", height:"60%" },
+    { cls:"orchard", top:"0%", left:"80%", width:"20%", height:"20%" },
+    { cls:"lake", top:"80%", left:"0%", width:"20%", height:"20%" },
+    { cls:"farm", top:"80%", left:"80%", width:"20%", height:"20%" }
+  ];
+
+  var DECOR = [
+    { type:"tree-pine", top:"6%", left:"9%" }, { type:"tree-round", top:"11%", left:"27%" },
+    { type:"tree-pine", top:"5%", left:"46%" }, { type:"tree-round", top:"12%", left:"63%" },
+    { type:"tree-pine", top:"7%", left:"78%" }, { type:"tree-round", top:"14%", left:"93%" },
+    { type:"tree-pine", top:"90%", left:"31%" }, { type:"tree-round", top:"86%", left:"49%" },
+    { type:"tree-pine", top:"92%", left:"66%" },
+    { type:"tree-round", top:"30%", left:"8%" }, { type:"tree-pine", top:"45%", left:"12%" },
+    { type:"tree-round", top:"62%", left:"7%" }, { type:"tree-pine", top:"71%", left:"14%" },
+    { type:"tree-round", top:"28%", left:"90%" }, { type:"tree-pine", top:"48%", left:"95%" },
+    { type:"tree-round", top:"66%", left:"88%" }, { type:"tree-pine", top:"73%", left:"93%" },
+    { type:"flower-pink", top:"60%", left:"52%" }, { type:"flower-white", top:"42%", left:"60%" },
+    { type:"flower-purple", top:"56%", left:"36%" }, { type:"flower-white", top:"35%", left:"55%" }
+  ];
+
+  var COPPER_PER_SILVER = 100, COPPER_PER_GOLD = 1000;
+  var KRW_PER_GOLD = 100000;
+  var totalCopper = 1000;
+
+  function numberToKoreanWon(num){
+    if(num <= 0) return "0";
+    var units = [ {value:100000000, label:"억"}, {value:10000, label:"만"} ];
+    var remain = num;
+    var parts = [];
+    units.forEach(function(u){
+      if(remain >= u.value){
+        var count = Math.floor(remain / u.value);
+        parts.push(count.toLocaleString("ko-KR") + u.label);
+        remain = remain % u.value;
+      }
+    });
+    if(remain > 0 || parts.length === 0){
+      parts.push(remain.toLocaleString("ko-KR"));
+    }
+    return parts.join(" ");
+  }
+
+  function formatKrw(copperAmount){
+    var krw = Math.round((copperAmount / COPPER_PER_GOLD) * KRW_PER_GOLD);
+    return numberToKoreanWon(krw);
+  }
+
+  /* ---------------- Dice tiers (1-20) ---------------- */
+  var DICE_TIERS = [
+    { key:"crit-success", min:20, max:20, en:"Critical Success", ko:"대성공",
+      desc:"예상보다 훨씬 잘 풀립니다. 하려던 일이 완전히 성공하고, 덤으로 뜻밖의 행운까지 따라옵니다." },
+    { key:"success", min:13, max:19, en:"Success", ko:"성공",
+      desc:"하려던 일이 성공합니다. 딱 기대했던 만큼, 무난하게 잘 풀립니다." },
+    { key:"normal", min:9, max:12, en:"Normal / Mixed", ko:"보통",
+      desc:"애매하게 걸쳐집니다. 일부만 성공하거나, 대가를 조금 치르고서야 겨우 해냅니다." },
+    { key:"failure", min:2, max:8, en:"Failure", ko:"실패",
+      desc:"하려던 일이 뜻대로 되지 않습니다. 더 나빠지진 않지만 진전도 없습니다." },
+    { key:"crit-failure", min:1, max:1, en:"Critical Failure", ko:"대실패",
+      desc:"일이 크게 어긋납니다. 실패하는 것도 모자라 상황이 더 나빠지는 사고까지 벌어집니다." }
+  ];
+
+  function tierForRoll(n){
+    for(var i=0;i<DICE_TIERS.length;i++){
+      var t = DICE_TIERS[i];
+      if(n >= t.min && n <= t.max) return t;
+    }
+    return DICE_TIERS[2];
+  }
+
+  /* ---------------- Icons ---------------- */
+  function coinSvg(tier){
+    var pal = {
+      gold:{base:"#E8B840", shade:"#A9761E", shine:"#FCE29C"},
+      silver:{base:"#C9CFD6", shade:"#828A93", shine:"#F1F4F7"},
+      copper:{base:"#C07A45", shade:"#7A4A26", shine:"#E4AE82"}
+    }[tier];
+    return '<svg viewBox="0 0 16 16" aria-hidden="true">' +
+      '<rect x="5" y="1" width="6" height="1" fill="'+pal.shade+'"/>' +
+      '<rect x="3" y="2" width="2" height="1" fill="'+pal.shade+'"/>' +
+      '<rect x="11" y="2" width="2" height="1" fill="'+pal.shade+'"/>' +
+      '<rect x="2" y="3" width="12" height="10" fill="'+pal.base+'"/>' +
+      '<rect x="1" y="4" width="1" height="8" fill="'+pal.shade+'"/>' +
+      '<rect x="14" y="4" width="1" height="8" fill="'+pal.shade+'"/>' +
+      '<rect x="3" y="2" width="10" height="1" fill="'+pal.base+'"/>' +
+      '<rect x="3" y="13" width="10" height="1" fill="'+pal.shade+'"/>' +
+      '<rect x="5" y="14" width="6" height="1" fill="'+pal.shade+'"/>' +
+      '<rect x="4" y="4" width="3" height="3" fill="'+pal.shine+'"/>' +
+      '<rect x="6" y="6" width="5" height="5" fill="'+pal.shade+'" opacity="0.5"/>' +
+    '</svg>';
+  }
+
+  var NOTICE_PAPER_STYLES = ["parchment", "scrap", "poster", "slate"];
+  var NOTICE_PIN_COLORS = ["ember", "crimson", "moss", "iron"];
+
+  function noticeStyleFor(index){
+    var i = ((index % NOTICE_PAPER_STYLES.length) + NOTICE_PAPER_STYLES.length) % NOTICE_PAPER_STYLES.length;
+    return { paper: NOTICE_PAPER_STYLES[i], pin: NOTICE_PIN_COLORS[i] };
+  }
+
+  function pinSvg(colorKey){
+    var palettes = {
+      ember:   { shade:"#A9601E", mid:"#DE9138", light:"#F2B15C" },
+      crimson: { shade:"#7A1F1F", mid:"#C1382F", light:"#E06B5C" },
+      moss:    { shade:"#33472A", mid:"#4C6B3F", light:"#6C8C56" },
+      iron:    { shade:"#1A211D", mid:"#3E4A44", light:"#6B7A73" }
+    };
+    var pal = palettes[colorKey] || palettes.ember;
+    return '<svg class="pin" viewBox="0 0 16 16" aria-hidden="true">' +
+      '<rect x="6" y="1" width="4" height="4" fill="'+pal.shade+'"/>' +
+      '<rect x="5" y="5" width="6" height="6" fill="'+pal.mid+'"/>' +
+      '<rect x="6" y="5" width="4" height="4" fill="'+pal.light+'"/>' +
+      '<rect x="7" y="11" width="2" height="4" fill="#5E4128"/>' +
+    '</svg>';
+  }
+
+  function fountainSvg(){
+    return '<svg class="bldg" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<rect x="2" y="16" width="20" height="4" fill="#828A93"/>' +
+      '<rect x="4" y="12" width="16" height="5" fill="#6FA8C7"/>' +
+      '<rect x="5" y="13" width="4" height="2" fill="#A9D4E8" class="animate-flicker"/>' +
+      '<rect x="14" y="13" width="4" height="2" fill="#A9D4E8" class="animate-flicker"/>' +
+      '<rect x="10" y="4" width="4" height="9" fill="#828A93"/>' +
+      '<rect x="8" y="2" width="8" height="3" fill="#C9CFD6"/>' +
+      '<rect x="9" y="0" width="6" height="2" fill="#A9D4E8" class="animate-flicker"/>' +
+    '</svg>';
+  }
+
+  function guildSvg(){
+    return '<svg class="bldg" viewBox="0 0 24 26" aria-hidden="true">' +
+      '<rect x="2" y="12" width="20" height="12" fill="#DCC896"/>' +
+      '<rect x="0" y="8" width="24" height="5" fill="#3B2A5C"/>' +
+      '<rect x="9" y="0" width="6" height="9" fill="#3B2A5C"/>' +
+      '<rect x="11" y="0" width="1" height="5" fill="#5E4128"/>' +
+      '<rect x="12" y="1" width="4" height="3" fill="#DE9138"/>' +
+      '<rect x="9" y="16" width="6" height="8" fill="#241609"/>' +
+      '<rect x="4" y="15" width="3" height="3" fill="#F2B15C" class="animate-flicker"/>' +
+      '<rect x="17" y="15" width="3" height="3" fill="#F2B15C" class="animate-flicker"/>' +
+    '</svg>';
+  }
+
+  function tradingSvg(){
+    return '<svg class="bldg" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<rect x="3" y="10" width="18" height="12" fill="#DCC896"/>' +
+      '<rect x="1" y="7" width="22" height="4" fill="#A9302E"/>' +
+      '<rect x="1" y="11" width="22" height="2" fill="#7A1F1F"/>' +
+      '<rect x="9" y="14" width="6" height="8" fill="#5E4128"/>' +
+      '<rect x="2" y="18" width="3" height="4" fill="#7A4A26"/>' +
+      '<rect x="19" y="18" width="3" height="4" fill="#7A4A26"/>' +
+      '<rect x="2" y="17" width="3" height="1" fill="#A9761E"/>' +
+      '<rect x="19" y="17" width="3" height="1" fill="#A9761E"/>' +
+    '</svg>';
+  }
+
+  function cottageSvg(){
+    return '<svg class="bldg" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<rect x="5" y="12" width="14" height="10" fill="#DCC896"/>' +
+      '<rect x="3" y="8" width="18" height="5" fill="#8E6A45"/>' +
+      '<rect x="16" y="3" width="2" height="6" fill="#5E4128"/>' +
+      '<rect x="9" y="16" width="5" height="6" fill="#241609"/>' +
+      '<rect x="15" y="15" width="3" height="3" fill="#4F6A82"/>' +
+    '</svg>';
+  }
+
+  function witchHutSvg(){
+    return '<svg class="bldg" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<rect x="6" y="13" width="12" height="9" fill="#4A3B2A"/>' +
+      '<rect x="2" y="9" width="20" height="5" fill="#33472A"/>' +
+      '<rect x="0" y="12" width="3" height="2" fill="#33472A"/>' +
+      '<rect x="21" y="11" width="3" height="2" fill="#33472A"/>' +
+      '<rect x="17" y="2" width="2" height="8" fill="#241609"/>' +
+      '<rect x="15" y="1" width="6" height="2" fill="#6C8C56" class="animate-flicker"/>' +
+      '<rect x="9" y="17" width="4" height="5" fill="#150C06"/>' +
+      '<rect x="14" y="15" width="3" height="3" fill="#9B7FC7" class="animate-flicker"/>' +
+      '<rect x="3" y="20" width="3" height="2" fill="#6C8C56"/>' +
+      '<rect x="4" y="18" width="1" height="2" fill="#E88FA0"/>' +
+    '</svg>';
+  }
+
+  function ruinSvg(){
+    return '<svg class="bldg" viewBox="0 0 24 24" aria-hidden="true">' +
+      '<rect x="0" y="21" width="24" height="3" fill="#5E5A4E"/>' +
+      '<rect x="1" y="15" width="6" height="6" fill="#9098A1"/>' +
+      '<rect x="1" y="15" width="6" height="2" fill="#6C7680"/>' +
+      '<rect x="2" y="17" width="1" height="4" fill="#6C7680" opacity="0.6"/>' +
+      '<rect x="9" y="6" width="4" height="15" fill="#A9B0B8"/>' +
+      '<rect x="9" y="6" width="4" height="2" fill="#7A828C"/>' +
+      '<rect x="9" y="10" width="4" height="1" fill="#7A828C" opacity="0.7"/>' +
+      '<rect x="16" y="12" width="5" height="9" fill="#9098A1"/>' +
+      '<rect x="16" y="12" width="5" height="2" fill="#6C7680"/>' +
+      '<rect x="3" y="12" width="2" height="3" fill="#6C8C56" opacity="0.8"/>' +
+      '<rect x="10" y="3" width="2" height="3" fill="#6C8C56" opacity="0.8"/>' +
+      '<rect x="17" y="9" width="2" height="3" fill="#6C8C56" opacity="0.8"/>' +
+    '</svg>';
+  }
+
+  function forestMarkerSvg(){
+    return '<svg class="bldg" viewBox="0 0 20 24" aria-hidden="true">' +
+      '<rect x="8" y="18" width="4" height="6" fill="#5E4128"/>' +
+      '<rect x="7" y="14" width="2" height="2" fill="#33472A"/>' +
+      '<rect x="11" y="14" width="2" height="2" fill="#33472A"/>' +
+      '<rect x="2" y="10" width="6" height="8" fill="#33472A"/>' +
+      '<rect x="12" y="10" width="6" height="8" fill="#33472A"/>' +
+      '<rect x="6" y="0" width="8" height="14" fill="#4C6B3F"/>' +
+      '<rect x="8" y="2" width="4" height="6" fill="#6C8C56"/>' +
+    '</svg>';
+  }
+
+  function lakeMarkerSvg(){
+    return '<svg class="bldg" viewBox="0 0 24 18" aria-hidden="true">' +
+      '<rect x="0" y="6" width="24" height="12" fill="#4F6A82"/>' +
+      '<rect x="0" y="4" width="24" height="2" fill="#6FA8C7"/>' +
+      '<rect x="2" y="9" width="5" height="1" fill="#A9D4E8"/>' +
+      '<rect x="10" y="12" width="6" height="1" fill="#A9D4E8"/>' +
+      '<rect x="16" y="8" width="4" height="1" fill="#A9D4E8"/>' +
+    '</svg>';
+  }
+
+  function farmMarkerSvg(){
+    return '<svg class="bldg" viewBox="0 0 16 22" aria-hidden="true">' +
+      '<rect x="7" y="10" width="2" height="12" fill="#8E6A45"/>' +
+      '<rect x="4" y="2" width="2" height="7" fill="#E8B840"/>' +
+      '<rect x="10" y="2" width="2" height="7" fill="#E8B840"/>' +
+      '<rect x="7" y="0" width="2" height="9" fill="#E8B840"/>' +
+      '<rect x="3" y="8" width="10" height="2" fill="#A9761E"/>' +
+    '</svg>';
+  }
+
+  function orchardMarkerSvg(){
+    return '<svg class="bldg" viewBox="0 0 22 20" aria-hidden="true">' +
+      '<rect x="3" y="14" width="2" height="6" fill="#5E4128"/>' +
+      '<rect x="1" y="8" width="6" height="7" fill="#6C8C56"/>' +
+      '<rect x="2" y="9" width="1" height="1" fill="#DE4E3A"/>' +
+      '<rect x="5" y="11" width="1" height="1" fill="#DE4E3A"/>' +
+      '<rect x="11" y="15" width="2" height="5" fill="#5E4128"/>' +
+      '<rect x="9" y="7" width="6" height="8" fill="#6C8C56"/>' +
+      '<rect x="10" y="9" width="1" height="1" fill="#DE4E3A"/>' +
+      '<rect x="13" y="12" width="1" height="1" fill="#DE4E3A"/>' +
+      '<rect x="18" y="15" width="2" height="5" fill="#5E4128"/>' +
+      '<rect x="16" y="9" width="5" height="6" fill="#6C8C56"/>' +
+      '<rect x="17" y="11" width="1" height="1" fill="#DE4E3A"/>' +
+    '</svg>';
+  }
+
+  function gateSvg(){
+    return '<svg class="bldg" viewBox="0 0 28 24" aria-hidden="true">' +
+      '<rect x="2" y="6" width="4" height="18" fill="#5E4128"/>' +
+      '<rect x="22" y="6" width="4" height="18" fill="#5E4128"/>' +
+      '<rect x="0" y="2" width="28" height="4" fill="#3B2A1E"/>' +
+      '<rect x="3" y="0" width="3" height="3" fill="#DE9138" class="animate-flicker"/>' +
+      '<rect x="22" y="0" width="3" height="3" fill="#DE9138" class="animate-flicker"/>' +
+      '<rect x="9" y="10" width="10" height="14" fill="#241609" opacity="0.45"/>' +
+      '<rect x="0" y="6" width="2" height="4" fill="#7A5738"/>' +
+      '<rect x="26" y="6" width="2" height="4" fill="#7A5738"/>' +
+    '</svg>';
+  }
+
+  function innSvg(){
+    return '<svg class="bldg" viewBox="0 0 26 26" aria-hidden="true">' +
+      '<rect x="4" y="12" width="18" height="14" fill="#DCC896"/>' +
+      '<rect x="2" y="6" width="22" height="7" fill="#A9601E"/>' +
+      '<rect x="0" y="11" width="3" height="6" fill="#5E4128"/>' +
+      '<rect x="0" y="9" width="7" height="3" fill="#DE9138"/>' +
+      '<rect x="9" y="17" width="6" height="9" fill="#241609"/>' +
+      '<rect x="5" y="15" width="3" height="3" fill="#F2B15C" class="animate-flicker"/>' +
+      '<rect x="17" y="15" width="3" height="3" fill="#F2B15C" class="animate-flicker"/>' +
+      '<rect x="18" y="1" width="2" height="6" fill="#5E4128"/>' +
+      '<rect x="16" y="0" width="6" height="2" fill="#7A4A26" class="animate-flicker"/>' +
+    '</svg>';
+  }
+
+  function marketStallSvg(accent){
+    return '<svg class="bldg" viewBox="0 0 20 18" aria-hidden="true">' +
+      '<rect x="1" y="6" width="18" height="2" fill="'+accent+'"/>' +
+      '<rect x="0" y="4" width="4" height="2" fill="'+accent+'"/>' +
+      '<rect x="8" y="4" width="4" height="2" fill="'+accent+'"/>' +
+      '<rect x="16" y="4" width="4" height="2" fill="'+accent+'"/>' +
+      '<rect x="2" y="8" width="16" height="8" fill="#DCC896"/>' +
+      '<rect x="2" y="8" width="16" height="2" fill="#8E6A45"/>' +
+      '<rect x="1" y="16" width="2" height="2" fill="#5E4128"/>' +
+      '<rect x="17" y="16" width="2" height="2" fill="#5E4128"/>' +
+    '</svg>';
+  }
+
+  function buildingSvg(type){
+    if(type === "fountain") return fountainSvg();
+    if(type === "guild") return guildSvg();
+    if(type === "trading") return tradingSvg();
+    if(type === "cottage") return cottageSvg();
+    if(type === "witch_hut") return witchHutSvg();
+    if(type === "ruin") return ruinSvg();
+    if(type === "forest") return forestMarkerSvg();
+    if(type === "lake") return lakeMarkerSvg();
+    if(type === "farm") return farmMarkerSvg();
+    if(type === "orchard") return orchardMarkerSvg();
+    if(type === "entrance") return gateSvg();
+    if(type === "inn") return innSvg();
+    if(type === "market_general") return marketStallSvg("#A9761E");
+    if(type === "market_fruit") return marketStallSvg("#DE4E3A");
+    if(type === "market_fish") return marketStallSvg("#6FA8C7");
+    if(type === "market_butcher") return marketStallSvg("#A9302E");
+    return cottageSvg();
+  }
+
+  function treeSvg(variant){
+    if(variant === "tree-pine"){
+      return '<svg viewBox="0 0 16 20" aria-hidden="true">' +
+        '<rect x="6" y="16" width="4" height="4" fill="#5E4128"/>' +
+        '<rect x="7" y="2" width="2" height="2" fill="#33472A"/>' +
+        '<rect x="5" y="4" width="6" height="2" fill="#33472A"/>' +
+        '<rect x="6" y="6" width="4" height="2" fill="#4C6B3F"/>' +
+        '<rect x="3" y="8" width="10" height="2" fill="#33472A"/>' +
+        '<rect x="4" y="10" width="8" height="2" fill="#4C6B3F"/>' +
+        '<rect x="1" y="12" width="14" height="2" fill="#33472A"/>' +
+      '</svg>';
+    }
+    return '<svg viewBox="0 0 16 20" aria-hidden="true">' +
+      '<rect x="6" y="14" width="4" height="6" fill="#5E4128"/>' +
+      '<rect x="2" y="4" width="12" height="10" fill="#4C6B3F"/>' +
+      '<rect x="4" y="2" width="8" height="4" fill="#6C8C56"/>' +
+      '<rect x="3" y="6" width="3" height="3" fill="#33472A" opacity="0.5"/>' +
+    '</svg>';
+  }
+
+  function flowerSvg(variant){
+    var colors = { "flower-pink":"#E88FA0", "flower-white":"#F4F1EA", "flower-purple":"#9B7FC7" };
+    var c = colors[variant] || "#E88FA0";
+    return '<svg viewBox="0 0 8 10" aria-hidden="true">' +
+      '<rect x="3" y="6" width="2" height="4" fill="#4C6B3F"/>' +
+      '<rect x="3" y="1" width="2" height="2" fill="'+c+'"/>' +
+      '<rect x="1" y="3" width="2" height="2" fill="'+c+'"/>' +
+      '<rect x="5" y="3" width="2" height="2" fill="'+c+'"/>' +
+      '<rect x="3" y="5" width="2" height="2" fill="'+c+'"/>' +
+      '<rect x="3" y="3" width="2" height="2" fill="#F2E15C"/>' +
+    '</svg>';
+  }
+
+  /* ---------------- Slide renderers ---------------- */
+
+  function renderNoticeboard(){
+    var html = '<h2 class="slide-title font-display">Village Noticeboard</h2>';
+    if(isAdmin){
+      html += '<div class="admin-bar">' +
+        '<button type="button" class="admin-add-btn" id="addNoticeBtn">+ 공지 추가</button>' +
+      '</div>';
+    }
+    html += '<div class="notice-grid">';
+
+    if(noticesLoading){
+      html += '<article class="notice paper-scrap pixel-corners-sm shadow-pixel-sm ai-loading">' +
+        pinSvg("crimson") +
+        '<h3 class="card-title font-display">공지를 불러오는 중...</h3>' +
+        '<p class="body">서버에서 마을 공지를 가져오고 있어요.</p>' +
+      '</article>';
+    } else if(noticesError){
+      html += '<article class="notice paper-scrap pixel-corners-sm shadow-pixel-sm ai-loading">' +
+        pinSvg("crimson") +
+        '<h3 class="card-title font-display">공지를 불러오지 못했어요</h3>' +
+        '<p class="body">서버 연결에 문제가 있어 임시 공지를 보여드리고 있어요. Supabase 설정을 확인해주세요.</p>' +
+      '</article>';
+    }
+
+    NOTICES.forEach(function(n, idx){
+      var st = noticeStyleFor(idx);
+      html += '<article class="notice paper-'+st.paper+' pixel-corners-sm shadow-pixel-sm" style="transform:rotate('+n.tilt+'deg)" ' +
+        'data-view-type="pinned" data-view-index="'+n.id+'" ' +
+        'onmouseover="this.style.transform=\'rotate(0deg)\'" onmouseout="this.style.transform=\'rotate('+n.tilt+'deg)\'">' +
+        pinSvg(st.pin) +
+        '<h3 class="card-title font-display">'+escapeHtml(n.title)+'</h3>' +
+        '<p class="body">'+escapeHtml(n.body)+'</p>' +
+        '<p class="signed">'+escapeHtml(n.signed)+'</p>';
+      if(isAdmin){
+        html += '<div class="notice-actions">' +
+          '<button type="button" data-edit="'+n.id+'">수정</button>' +
+          '<button type="button" class="danger" data-delete="'+n.id+'">삭제</button>' +
+        '</div>';
+      }
+      html += '</article>';
+    });
+
+    html += '</div>';
+    return html;
+  }
+
+  function wireNoticeboard(){
+    var addBtn = document.getElementById("addNoticeBtn");
+    if(addBtn) addBtn.addEventListener("click", function(){ openNoticeModal(null); });
+
+    document.querySelectorAll("[data-edit]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        openNoticeModal(btn.getAttribute("data-edit"));
+      });
+    });
+    document.querySelectorAll("[data-delete]").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        openDeleteModal(btn.getAttribute("data-delete"));
+      });
+    });
+
+    document.querySelectorAll(".notice[data-view-type]").forEach(function(card){
+      card.addEventListener("click", function(e){
+        if(e.target.closest(".notice-actions")) return;
+        var vKey = card.getAttribute("data-view-index");
+        openViewModal(vKey);
+      });
+    });
+  }
+
+  function formatAmount(value){
+    if(!isFinite(value)) return "0";
+    var rounded = Math.round(value * 10000) / 10000;
+    return rounded.toString();
+  }
+
+  function renderCurrency(){
+    var gold = formatAmount(totalCopper / COPPER_PER_GOLD);
+    var silver = formatAmount(totalCopper / COPPER_PER_SILVER);
+    var copper = formatAmount(totalCopper);
+    var html =
+      '<h2 class="slide-title font-display">Coin-Changer\'s Calculator</h2>' +
+      '<p class="currency-intro">Enter an amount in any tin, and the changer sorts the rest of your purse automatically. 1 Gold = 10 Silver = 1,000 Copper.</p>' +
+      '<div class="currency-grid">' +
+        '<label class="currency-card pixel-corners-sm shadow-pixel-sm" for="cur-gold">' +
+          '<span class="label-row">'+coinSvg("gold")+'<span class="font-display">Gold</span></span>' +
+          '<input id="cur-gold" type="number" inputmode="decimal" min="0" step="any" value="'+gold+'" data-tier="gold" />' +
+          '<span class="hint">1 Gold = 10 Silver</span>' +
+        '</label>' +
+        '<label class="currency-card pixel-corners-sm shadow-pixel-sm" for="cur-silver">' +
+          '<span class="label-row">'+coinSvg("silver")+'<span class="font-display">Silver</span></span>' +
+          '<input id="cur-silver" type="number" inputmode="decimal" min="0" step="any" value="'+silver+'" data-tier="silver" />' +
+          '<span class="hint">1 Silver = 100 Copper</span>' +
+        '</label>' +
+        '<label class="currency-card pixel-corners-sm shadow-pixel-sm" for="cur-copper">' +
+          '<span class="label-row">'+coinSvg("copper")+'<span class="font-display">Copper</span></span>' +
+          '<input id="cur-copper" type="number" inputmode="decimal" min="0" step="any" value="'+copper+'" data-tier="copper" />' +
+          '<span class="hint">the small stuff</span>' +
+        '</label>' +
+      '</div>' +
+      '<div class="purse-total pixel-corners-sm"><p>Purse total: '+copper+' copper pieces.</p><p class="krw-total">약 '+formatKrw(totalCopper)+'원 (1골드 = 10만 원 기준)</p></div>';
+    return html;
+  }
+
+  function wireCurrencyInputs(){
+    var inputs = { gold: document.getElementById("cur-gold"), silver: document.getElementById("cur-silver"), copper: document.getElementById("cur-copper") };
+    var totalEl = document.querySelector(".purse-total p");
+    var krwEl = document.querySelector(".purse-total p.krw-total");
+
+    function toCopper(tier, v){
+      if(tier === "gold") return v * COPPER_PER_GOLD;
+      if(tier === "silver") return v * COPPER_PER_SILVER;
+      return v;
+    }
+    function fromCopper(tier, c){
+      if(tier === "gold") return c / COPPER_PER_GOLD;
+      if(tier === "silver") return c / COPPER_PER_SILVER;
+      return c;
+    }
+
+    Object.keys(inputs).forEach(function(tier){
+      inputs[tier].addEventListener("input", function(e){
+        var raw = e.target.value;
+        if(raw.trim() === "" || raw === "-"){
+          totalCopper = 0;
+          Object.keys(inputs).forEach(function(t){ if(t !== tier) inputs[t].value = "0"; });
+          totalEl.textContent = "Purse total: 0 copper pieces.";
+          krwEl.textContent = "약 0원 (1골드 = 10만 원 기준)";
+          return;
+        }
+        var numeric = Number(raw);
+        if(isNaN(numeric)) return;
+        var clamped = Math.max(0, numeric);
+        totalCopper = toCopper(tier, clamped);
+
+        Object.keys(inputs).forEach(function(t){
+          if(t !== tier) inputs[t].value = formatAmount(fromCopper(t, totalCopper));
+        });
+        totalEl.textContent = "Purse total: " + formatAmount(totalCopper) + " copper pieces.";
+        krwEl.textContent = "약 " + formatKrw(totalCopper) + "원 (1골드 = 10만 원 기준)";
+      });
+    });
+  }
+
+  var activePoiId = POIS[0].id;
+
+  function renderMap(){
+    var active = POIS.filter(function(p){ return p.id === activePoiId; })[0];
+    var html = '<h2 class="slide-title font-display">Map of Einherjar Village</h2>' +
+      '<div class="map-box pixel-corners-sm">';
+
+    ZONES.forEach(function(z){
+      html += '<div class="zone '+z.cls+'" style="top:'+z.top+';left:'+z.left+';width:'+z.width+';height:'+z.height+'"></div>';
+    });
+
+    html +=
+        '<div class="crossroad v"></div><div class="crossroad h"></div>' +
+        '<div class="plaza-ring pixel-corners-sm"></div>';
+
+    DECOR.forEach(function(d){
+      var svg = (d.type === "tree-pine" || d.type === "tree-round") ? treeSvg(d.type) : flowerSvg(d.type);
+      var kind = d.type.indexOf("tree") === 0 ? "tree" : "flower";
+      html += '<span class="decor '+kind+'" style="top:'+d.top+';left:'+d.left+'">'+svg+'</span>';
+    });
+
+    POIS.forEach(function(poi){
+      var isActive = poi.id === activePoiId;
+      var sizeClass = poi.size === "lg" ? "icon-lg" : (poi.size === "sm" ? "icon-sm" : "");
+      var hideTag = poi.type === "cottage" || poi.type === "witch_hut" || poi.type.indexOf("market_") === 0;
+      var tagHtml = hideTag ? "" : '<span class="tag font-display">'+poi.kind+'</span>';
+      html += '<button type="button" class="poi-btn '+sizeClass+(isActive ? " active" : "")+'" data-poi="'+poi.id+'" ' +
+        'style="top:'+poi.top+';left:'+poi.left+'" aria-pressed="'+isActive+'" aria-label="'+poi.name+', '+poi.kind+'">' +
+        '<span class="bldg-wrap">'+buildingSvg(poi.type)+'</span>' +
+        tagHtml +
+      '</button>';
+    });
+    html += '</div>' +
+      '<div class="poi-detail pixel-corners-sm" id="poiDetail">' +
+        '<h3 class="card-title font-display">'+active.name+'</h3>' +
+        '<p>'+active.blurb+'</p>' +
+      '</div>';
+    return html;
+  }
+
+  function wireMap(){
+    var buttons = document.querySelectorAll(".poi-btn");
+    buttons.forEach(function(btn){
+      btn.addEventListener("click", function(){
+        activePoiId = btn.getAttribute("data-poi");
+        renderSlide(activeIndex, true);
+      });
+    });
+  }
+
+  var lastRoll = null;
+
+  function renderDice(){
+    var faceClass = "die-face", resultHtml = '<p>주사위를 눌러서 운을 확인해보세요.</p>';
+    if(lastRoll !== null){
+      var t = tierForRoll(lastRoll);
+      faceClass += " tier-" + t.key;
+      resultHtml =
+        '<p class="tier-name font-display">'+t.ko+' &middot; '+t.en+'</p>' +
+        '<p>'+t.desc+'</p>';
+    }
+    var html =
+      '<h2 class="slide-title font-display">운명의 주사위 (d20)</h2>' +
+      '<p class="dice-intro">1부터 20까지의 주사위 하나로, 지금 하려는 일이 얼마나 잘 풀릴지 점쳐볼 수 있습니다. 주사위를 굴리면 아래 다섯 단계 중 하나로 결과가 나오고, 눈부신 대성공부터 뼈아픈 대실패까지 그 뜻을 바로 알 수 있어요.</p>' +
+      '<div class="dice-stage">' +
+        '<div class="'+faceClass+'" id="dieFace"><span class="num font-display">'+(lastRoll !== null ? lastRoll : "?")+'</span></div>' +
+        '<button type="button" class="roll-btn pixel-corners-sm" id="rollBtn">굴리기</button>' +
+        '<div class="roll-result" id="rollResult">'+resultHtml+'</div>' +
+      '</div>' +
+      '<h3 class="card-title font-display">각 결과가 뜻하는 것</h3>' +
+      '<div class="tier-legend" id="tierLegend">';
+    DICE_TIERS.forEach(function(t){
+      var range = t.min === t.max ? String(t.min) : (t.min+'\u2013'+t.max);
+      var isActive = lastRoll !== null && tierForRoll(lastRoll).key === t.key;
+      html +=
+        '<div class="tier-card" data-tier="'+t.key+'">' +
+          '<span class="chip tier-'+t.key+'"></span>' +
+          '<div>' +
+            '<h4 class="font-display">'+t.ko+' &middot; '+t.en+'</h4>' +
+            '<p class="range">'+range+'이 나오면</p>' +
+            '<p class="desc">'+t.desc+'</p>' +
+          '</div>' +
+        '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  function wireDice(){
+    var btn = document.getElementById("rollBtn");
+    var face = document.getElementById("dieFace");
+    if(!btn) return;
+    btn.addEventListener("click", function(){
+      if(btn.disabled) return;
+      btn.disabled = true;
+      face.classList.add("rolling");
+      var ticks = 0, maxTicks = 12;
+      var interval = setInterval(function(){
+        face.querySelector(".num").textContent = 1 + Math.floor(Math.random() * 20);
+        ticks++;
+        if(ticks >= maxTicks){
+          clearInterval(interval);
+          lastRoll = 1 + Math.floor(Math.random() * 20);
+          face.classList.remove("rolling");
+          renderSlide(activeIndex, true);
+          btn.disabled = false;
+          var highlightSel = document.querySelector('.tier-card[data-tier="'+tierForRoll(lastRoll).key+'"]');
+          if(highlightSel) highlightSel.classList.add("highlight");
+        }
+      }, 60);
+    });
+  }
+
+  /* ---------------- Admin login / notice modal ---------------- */
+  var adminToggleBtn = document.getElementById("adminToggleBtn");
+  var loginModal = document.getElementById("loginModal");
+  var adminEmailInput = document.getElementById("adminEmailInput");
+  var adminPassInput = document.getElementById("adminPassInput");
+  var loginError = document.getElementById("loginError");
+  var loginSubmitBtn = document.getElementById("loginSubmitBtn");
+  var loginCancelBtn = document.getElementById("loginCancelBtn");
+
+  var noticeModal = document.getElementById("noticeModal");
+  var noticeModalTitle = document.getElementById("noticeModalTitle");
+  var noticeTitleInput = document.getElementById("noticeTitleInput");
+  var noticeSignedInput = document.getElementById("noticeSignedInput");
+  var noticeBodyInput = document.getElementById("noticeBodyInput");
+  var noticeError = document.getElementById("noticeError");
+  var noticeSaveBtn = document.getElementById("noticeSaveBtn");
+  var noticeCancelBtn = document.getElementById("noticeCancelBtn");
+  var editingId = null;
+
+  function updateAdminToggle(){
+    adminToggleBtn.textContent = isAdmin ? "로그아웃" : "관리자";
+    adminToggleBtn.classList.toggle("is-admin", isAdmin);
+  }
+  updateAdminToggle();
+
+  function openLoginModal(){
+    loginError.hidden = true;
+    adminEmailInput.value = "";
+    adminPassInput.value = "";
+    loginModal.hidden = false;
+    adminEmailInput.focus();
+  }
+  function closeLoginModal(){ loginModal.hidden = true; }
+
+  adminToggleBtn.addEventListener("click", async function(){
+    if(isAdmin){
+      adminToggleBtn.disabled = true;
+      try{ await sb.auth.signOut(); }catch(e){ console.error("로그아웃 실패:", e); }
+      isAdmin = false;
+      adminToggleBtn.disabled = false;
+      updateAdminToggle();
+      if(SLIDES[activeIndex].id === "notices") renderSlide(activeIndex, true);
+    } else {
+      openLoginModal();
+    }
+  });
+
+  loginCancelBtn.addEventListener("click", closeLoginModal);
+  loginModal.addEventListener("click", function(e){ if(e.target === loginModal) closeLoginModal(); });
+
+  async function attemptLogin(){
+    var email = adminEmailInput.value.trim();
+    var password = adminPassInput.value;
+    if(!email || !password){
+      loginError.textContent = "이메일과 비밀번호를 모두 입력해주세요.";
+      loginError.hidden = false;
+      return;
+    }
+    loginSubmitBtn.disabled = true;
+    try{
+      var res = await sb.auth.signInWithPassword({ email:email, password:password });
+      if(res.error) throw res.error;
+      isAdmin = true;
+      updateAdminToggle();
+      closeLoginModal();
+      if(SLIDES[activeIndex].id === "notices") renderSlide(activeIndex, true);
+    }catch(e){
+      console.error("로그인 실패:", e);
+      loginError.textContent = "이메일 또는 비밀번호가 올바르지 않습니다.";
+      loginError.hidden = false;
+    }finally{
+      loginSubmitBtn.disabled = false;
+    }
+  }
+  loginSubmitBtn.addEventListener("click", attemptLogin);
+  adminPassInput.addEventListener("keydown", function(e){ if(e.key === "Enter") attemptLogin(); });
+  adminEmailInput.addEventListener("keydown", function(e){ if(e.key === "Enter") attemptLogin(); });
+
+  function openNoticeModal(id){
+    editingId = id;
+    noticeError.hidden = true;
+    if(id === null){
+      noticeModalTitle.textContent = "공지 추가";
+      noticeTitleInput.value = "";
+      noticeSignedInput.value = "";
+      noticeBodyInput.value = "";
+    } else {
+      var n = NOTICES.find(function(x){ return x.id === id; });
+      if(!n) return;
+      noticeModalTitle.textContent = "공지 수정";
+      noticeTitleInput.value = n.title;
+      noticeSignedInput.value = n.signed;
+      noticeBodyInput.value = n.body;
+    }
+    noticeModal.hidden = false;
+    noticeTitleInput.focus();
+  }
+  function closeNoticeModal(){ noticeModal.hidden = true; }
+
+  noticeCancelBtn.addEventListener("click", closeNoticeModal);
+  noticeModal.addEventListener("click", function(e){ if(e.target === noticeModal) closeNoticeModal(); });
+
+  noticeSaveBtn.addEventListener("click", async function(){
+    var title = noticeTitleInput.value.trim();
+    var signed = noticeSignedInput.value.trim();
+    var body = noticeBodyInput.value.trim();
+    if(!title || !signed || !body){
+      noticeError.hidden = false;
+      return;
+    }
+    var signedFormatted = signed.indexOf("—") === 0 || signed.indexOf("-") === 0 ? signed : "— " + signed;
+    noticeSaveBtn.disabled = true;
+    try{
+      if(editingId === null){
+        var tilt = Number((Math.random() * 4 - 2).toFixed(1));
+        var insertRes = await sb.from("notices")
+          .insert({ title:title, body:body, signed:signedFormatted, tilt:tilt })
+          .select().single();
+        if(insertRes.error) throw insertRes.error;
+        NOTICES.push(insertRes.data);
+      } else {
+        var updateRes = await sb.from("notices")
+          .update({ title:title, body:body, signed:signedFormatted })
+          .eq("id", editingId).select().single();
+        if(updateRes.error) throw updateRes.error;
+        var idx = NOTICES.findIndex(function(x){ return x.id === editingId; });
+        if(idx !== -1) NOTICES[idx] = updateRes.data;
+      }
+      closeNoticeModal();
+      renderSlide(activeIndex, true);
+    }catch(e){
+      console.error("공지 저장 실패:", e);
+      noticeError.textContent = "저장에 실패했어요. 잠시 후 다시 시도해주세요.";
+      noticeError.hidden = false;
+    }finally{
+      noticeSaveBtn.disabled = false;
+    }
+  });
+
+  var deleteModal = document.getElementById("deleteModal");
+  var deleteMessage = document.getElementById("deleteMessage");
+  var deleteConfirmBtn = document.getElementById("deleteConfirmBtn");
+  var deleteCancelBtn = document.getElementById("deleteCancelBtn");
+  var pendingDeleteId = null;
+
+  function openDeleteModal(id){
+    pendingDeleteId = id;
+    var n = NOTICES.find(function(x){ return x.id === id; });
+    if(!n) return;
+    deleteMessage.textContent = '"' + n.title + '" 공지를 정말 삭제할까요? 이 작업은 되돌릴 수 없습니다.';
+    deleteModal.hidden = false;
+    deleteConfirmBtn.focus();
+  }
+  function closeDeleteModal(){
+    deleteModal.hidden = true;
+    pendingDeleteId = null;
+  }
+
+  deleteCancelBtn.addEventListener("click", closeDeleteModal);
+  deleteModal.addEventListener("click", function(e){ if(e.target === deleteModal) closeDeleteModal(); });
+  deleteConfirmBtn.addEventListener("click", async function(){
+    if(pendingDeleteId === null) return;
+    var idToDelete = pendingDeleteId;
+    deleteConfirmBtn.disabled = true;
+    try{
+      var delRes = await sb.from("notices").delete().eq("id", idToDelete);
+      if(delRes.error) throw delRes.error;
+      NOTICES = NOTICES.filter(function(x){ return x.id !== idToDelete; });
+      closeDeleteModal();
+      renderSlide(activeIndex, true);
+    }catch(e){
+      console.error("공지 삭제 실패:", e);
+      closeDeleteModal();
+      alert("삭제에 실패했어요. 잠시 후 다시 시도해주세요.");
+    }finally{
+      deleteConfirmBtn.disabled = false;
+    }
+  });
+
+  var viewModal = document.getElementById("viewModal");
+  var viewModalBox = document.getElementById("viewModalBox");
+  var viewModalContent = document.getElementById("viewModalContent");
+  var viewModalClose = document.getElementById("viewModalClose");
+
+  function openViewModal(key){
+    var idx = NOTICES.findIndex(function(x){ return x.id === key; });
+    var n = NOTICES[idx];
+    if(!n) return;
+    var st = noticeStyleFor(idx);
+    viewModalBox.className = "view-modal-box notice pixel-corners shadow-pixel paper-"+st.paper;
+    var html = "";
+    html += pinSvg(st.pin) +
+      '<h3 class="card-title font-display">'+escapeHtml(n.title)+'</h3>' +
+      '<p class="body">'+escapeHtml(n.body)+'</p>' +
+      '<p class="signed">'+escapeHtml(n.signed)+'</p>';
+    viewModalContent.innerHTML = html;
+    viewModal.hidden = false;
+    viewModalClose.focus();
+  }
+  function closeViewModal(){ viewModal.hidden = true; }
+
+  viewModalClose.addEventListener("click", closeViewModal);
+  viewModal.addEventListener("click", function(e){ if(e.target === viewModal) closeViewModal(); });
+
+  /* ---------------- Carousel ---------------- */
+  var SLIDES = [
+    { id:"notices", label:"Noticeboard", render:renderNoticeboard, wire:wireNoticeboard },
+    { id:"currency", label:"Coin-Changer", render:renderCurrency, wire:wireCurrencyInputs },
+    { id:"map", label:"Village Map", render:renderMap, wire:wireMap },
+    { id:"dice", label:"운명의 주사위", render:renderDice, wire:wireDice }
+  ];
+  var activeIndex = 0;
+
+  var host = document.getElementById("slideHost");
+  var label = document.getElementById("slideLabel");
+  var dotsHost = document.getElementById("dots");
+
+  function renderDots(){
+    dotsHost.innerHTML = "";
+    SLIDES.forEach(function(s, i){
+      var dot = document.createElement("button");
+      dot.type = "button";
+      dot.className = "dot" + (i === activeIndex ? " active" : "");
+      dot.setAttribute("aria-label", "Go to " + s.label);
+      dot.setAttribute("aria-current", i === activeIndex ? "true" : "false");
+      dot.addEventListener("click", function(){ setActive(i); });
+      dotsHost.appendChild(dot);
+    });
+  }
+
+  function renderSlide(index, skipScrollReset){
+    var slide = SLIDES[index];
+    host.innerHTML = slide.render();
+    label.textContent = slide.label;
+    if(slide.wire) slide.wire();
+    renderDots();
+    if(!skipScrollReset) host.scrollTop = 0;
+  }
+
+  function setActive(index){
+    activeIndex = (index + SLIDES.length) % SLIDES.length;
+    renderSlide(activeIndex);
+  }
+
+  document.getElementById("prevBtn").addEventListener("click", function(){ setActive(activeIndex - 1); });
+  document.getElementById("nextBtn").addEventListener("click", function(){ setActive(activeIndex + 1); });
+  window.addEventListener("keydown", function(e){
+    if(!loginModal.hidden || !noticeModal.hidden || !deleteModal.hidden || !viewModal.hidden){
+      if(e.key === "Escape"){ closeLoginModal(); closeNoticeModal(); closeDeleteModal(); closeViewModal(); }
+      return;
+    }
+    if(e.key === "ArrowLeft") setActive(activeIndex - 1);
+    if(e.key === "ArrowRight") setActive(activeIndex + 1);
+  });
+
+  renderSlide(activeIndex);
+
+  loadNotices();
+
+  /* Restore admin session if already logged in (e.g. after page refresh) */
+  sb.auth.getSession().then(function(res){
+    if(res.data && res.data.session){
+      isAdmin = true;
+      updateAdminToggle();
+      if(SLIDES[activeIndex].id === "notices") renderSlide(activeIndex, true);
+    }
+  });
+  sb.auth.onAuthStateChange(function(event, session){
+    var nowAdmin = !!session;
+    if(nowAdmin !== isAdmin){
+      isAdmin = nowAdmin;
+      updateAdminToggle();
+      if(SLIDES[activeIndex].id === "notices") renderSlide(activeIndex, true);
+    }
+  });
+})();
+</script>
+</body>
+</html>
